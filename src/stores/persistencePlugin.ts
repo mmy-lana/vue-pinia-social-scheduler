@@ -69,6 +69,27 @@ function persistable(store: StoreGeneric): PersistableStore {
 const forceFlushers = new Set<() => void>()
 
 /**
+ * While true, no store writes to LocalStorage.
+ *
+ * Wiping storage is not enough on its own: the page is still alive, every store
+ * still holds its old state in memory, and the `pagehide` handler writes that
+ * state straight back the moment navigation tears the page down — resurrecting
+ * exactly what was just cleared. Suppression is a one-way latch, set before the
+ * wipe and kept for the remainder of the page's life.
+ */
+let isPersistenceSuppressed = false
+
+/** Stops every store from writing. Intended for destructive whole-app resets. */
+export function suppressPersistence(): void {
+  isPersistenceSuppressed = true
+}
+
+/** True while writes are suppressed. Exposed for assertions and diagnostics. */
+export function isPersistenceSuppressedNow(): boolean {
+  return isPersistenceSuppressed
+}
+
+/**
  * Writes every store's *current* state to LocalStorage immediately.
  *
  * Two things depend on this. The scheduler re-reads posts from storage before
@@ -99,6 +120,7 @@ export function persistencePlugin({ store }: PiniaPluginContext): void {
   let applyingExternal = false
 
   const flush = (): void => {
+    if (isPersistenceSuppressed) return
     if (applyingExternal) return
     const slice = api.read()
     let payload: string
@@ -134,6 +156,7 @@ export function persistencePlugin({ store }: PiniaPluginContext): void {
   )
 
   window.addEventListener('pagehide', () => {
+    if (isPersistenceSuppressed) return
     debouncedFlush.flush()
   })
 

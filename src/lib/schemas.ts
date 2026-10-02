@@ -108,6 +108,17 @@ export const QueueSlotSchema = z
     }
   })
 
+/**
+ * A stored image payload is always a base64 data URL of one of the four formats
+ * the pipeline produces.
+ *
+ * Strictly anchored rather than a `data:` prefix check, because these strings
+ * are rendered into `src` attributes and are round-tripped through an untrusted
+ * JSON import. `data:text/html` and `javascript:` payloads must never validate
+ * as an image, and no whitespace or extra parameter may slip past the match.
+ */
+const IMAGE_DATA_URL = /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/
+
 export const MediaAssetSchema = z.object({
   ...baseShape,
   name: z.string().min(1),
@@ -115,7 +126,7 @@ export const MediaAssetSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   bytes: z.number().int().nonnegative(),
-  dataUrl: z.string().startsWith('data:'),
+  dataUrl: z.string().regex(IMAGE_DATA_URL, 'Unsupported media data URL'),
 })
 
 export const PostMetricsSchema = z.object({

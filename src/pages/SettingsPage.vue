@@ -18,6 +18,7 @@ import BaseSwitch from '@/components/ui/BaseSwitch.vue'
 import BaseProgressRing from '@/components/ui/BaseProgressRing.vue'
 import { parseBundle } from '@/lib/schemas'
 import { clearNamespace, namespaceBytes } from '@/lib/storage'
+import { suppressPersistence } from '@/stores/persistencePlugin'
 import { buildDemoData } from '@/lib/seed'
 import { downloadTextFile, formatBytes, pluralize, readAsText } from '@/lib/utils'
 import { supportedTimeZones, timeZoneLabel } from '@/lib/datetime'
@@ -143,7 +144,26 @@ async function onImportFile(event: Event): Promise<void> {
   input.value = ''
   if (!file) return
 
-  const parsed = parseBundle(JSON.parse(await readAsText(file)))
+  // A user can pick anything, including a binary file renamed to `.json`.
+  // `JSON.parse` throws on malformed input, and an unhandled rejection here
+  // would surface as a blank screen instead of a usable message.
+  let raw: string
+  try {
+    raw = await readAsText(file)
+  } catch {
+    ui.toast({ tone: 'danger', message: 'That file could not be read.' })
+    return
+  }
+
+  let decoded: unknown
+  try {
+    decoded = JSON.parse(raw)
+  } catch {
+    ui.toast({ tone: 'danger', message: 'Invalid JSON file format' })
+    return
+  }
+
+  const parsed = parseBundle(decoded)
   const bundle = parsed.data[0]
   if (bundle === undefined) {
     ui.toast({ tone: 'danger', message: 'That file does not look like a scheduler export.' })
@@ -226,6 +246,15 @@ async function resetEverything(): Promise<void> {
   })
   if (!ok) return
 
+  // Latch persistence off *first*. Every store still holds the old data in
+  // memory, and the `pagehide` flush would otherwise write all of it back into
+  // the namespace we are about to empty — silently undoing the reset.
+  suppressPersistence()
+  accounts.replaceAll([])
+  slots.replaceAll([])
+  media.replaceAll([])
+  posts.replaceAll([])
+  activity.clear()
   clearNamespace()
   window.location.reload()
 }

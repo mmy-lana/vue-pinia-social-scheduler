@@ -152,3 +152,34 @@ describe('activity entries', () => {
     expect(ActivityEntrySchema.safeParse({ ...entry, type: 'exploded' }).success).toBe(false)
   })
 })
+
+describe('MediaAssetSchema data URL hardening', () => {
+  const base = {
+    id: 'asset-1',
+    createdAt: '2026-10-02T08:00:00.000Z',
+    updatedAt: '2026-10-02T08:00:00.000Z',
+    name: 'photo.png',
+    mime: 'image/png',
+    width: 640,
+    height: 480,
+    bytes: 1024,
+  }
+
+  it.each(['jpeg', 'png', 'webp', 'gif'])('accepts a base64 %s payload', (format) => {
+    const result = MediaAssetSchema.safeParse({ ...base, dataUrl: `data:image/${format};base64,AAAA` })
+    expect(result.success).toBe(true)
+  })
+
+  it.each([
+    ['a text/html payload', 'data:text/html;base64,PHNjcmlwdD4='],
+    ['a javascript payload', 'data:text/javascript;base64,YWxlcnQoMSk='],
+    ['a bare data prefix', 'data:'],
+    ['an unencoded svg', 'data:image/svg+xml,<svg onload=alert(1)>'],
+    ['a url-encoded payload', 'data:image/png,%89PNG'],
+    ['trailing whitespace', 'data:image/png;base64,AAAA '],
+    ['a newline injection', 'data:image/png;base64,AAAA\ntext/html'],
+    ['an empty payload', 'data:image/png;base64,'],
+  ])('rejects %s', (_label, dataUrl) => {
+    expect(MediaAssetSchema.safeParse({ ...base, dataUrl }).success).toBe(false)
+  })
+})

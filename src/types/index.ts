@@ -230,6 +230,14 @@ export interface PostRemovalSnapshot {
   posts: Post[]
   groupIds: string[]
   activity: ActivityEntry[]
+  /**
+   * Media referenced by the deleted posts.
+   *
+   * The assets are kept alive for the whole undo window and restored with the
+   * post: collecting them eagerly would leave a restored post pointing at
+   * `mediaIds` that no longer resolve, and its photos would silently vanish.
+   */
+  media: MediaAsset[]
 }
 
 export interface DayCellModel {

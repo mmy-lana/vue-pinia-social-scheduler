@@ -397,12 +397,22 @@ export const usePostsStore = defineStore('posts', () => {
     const removedActivity = activity.entries.filter(
       (entry) => entry.postId !== null && groupIds.has(entry.postId),
     )
+    // Captured before the media library can be swept, so an undo inside the
+    // 8s window can put the photos back with the post.
+    const removedMedia = media.resolveMany(group.flatMap((item) => item.mediaIds))
     posts.value = posts.value.filter((item) => item.groupId !== post.groupId)
     activity.removeManyForPosts(groupIds)
     activity.log('deleted', `Deleted ${group.length > 1 ? `${group.length} posts` : 'post'}`, null)
 
-    const snapshot: PostRemovalSnapshot = { posts: group, groupIds: [...groupIds], activity: removedActivity }
-    ui.rememberPostRemoval(snapshot, group.length)
+    const snapshot: PostRemovalSnapshot = {
+      posts: group,
+      groupIds: [...groupIds],
+      activity: removedActivity,
+      media: removedMedia,
+    }
+    ui.rememberPostRemoval(snapshot, group.length, () => {
+      restore(snapshot)
+    })
     return snapshot
   }
 
@@ -410,6 +420,8 @@ export const usePostsStore = defineStore('posts', () => {
     ui.clearPostSnapshot()
     const known = new Set(posts.value.map((post) => post.id))
     posts.value = [...snapshot.posts.filter((post) => !known.has(post.id)), ...posts.value]
+    // Media first: a post is only renderable once its assets resolve again.
+    useMediaStore().restore(snapshot.media)
     activity.prepend(snapshot.activity)
     activity.log('created', 'Restored post', snapshot.posts[0]?.id ?? null)
   }

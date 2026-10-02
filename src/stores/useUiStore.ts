@@ -109,7 +109,18 @@ export const useUiStore = defineStore('ui', () => {
     accountSnapshot.value = null
   }
 
-  function rememberPostRemoval(snapshot: PostRemovalSnapshot, count: number): void {
+  /**
+   * Emits the single "Deleted N posts." toast for a removal.
+   *
+   * `onUndo` is supplied by the caller so the toast's action actually puts the
+   * records back — clearing the snapshot on its own would leave the user with a
+   * dead Undo button.
+   */
+  function rememberPostRemoval(
+    snapshot: PostRemovalSnapshot,
+    count: number,
+    onUndo: () => void,
+  ): void {
     postSnapshot.value = snapshot
     toast({
       tone: 'neutral',
@@ -117,6 +128,7 @@ export const useUiStore = defineStore('ui', () => {
       actionLabel: 'Undo',
       onAction: () => {
         postSnapshot.value = null
+        onUndo()
       },
       durationMs: 8_000,
     })

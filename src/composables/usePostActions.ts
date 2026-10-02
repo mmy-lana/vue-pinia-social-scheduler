@@ -3,7 +3,7 @@ import { useUiStore } from '@/stores/useUiStore'
 import { useSchedulerStore } from '@/stores/useSchedulerStore'
 import { useMediaStore } from '@/stores/useMediaStore'
 import { nowIso } from '@/lib/datetime'
-import type { PostActionId } from '@/types'
+import type { PostActionId, PostRemovalSnapshot } from '@/types'
 
 /** How long a destructive action offers "Undo" in its toast. */
 export const POST_UNDO_MS = 8_000
@@ -15,8 +15,10 @@ export interface PostActionController {
    * library, the queue and the calendar behave identically.
    */
   run: (postId: string, action: PostActionId) => Promise<void>
-  /** Clears media no post references any more, after a deletion. */
+  /** Clears media no post references any more. */
   collectMedia: () => void
+  /** Drops a pending deferred sweep, for callers tearing down mid-window. */
+  cancelMediaCollection: () => void
 }
 
 export function usePostActions(): PostActionController {
@@ -25,8 +27,46 @@ export function usePostActions(): PostActionController {
   const scheduler = useSchedulerStore()
   const media = useMediaStore()
 
+  let collectionTimer: ReturnType<typeof setTimeout> | null = null
+
   function collectMedia(): void {
     media.gc(posts.referencedMediaIds())
+  }
+
+  /**
+   * Sweeps media left unreferenced by a deletion, once the undo window closes.
+   *
+   * Collecting immediately would destroy the very assets an undo needs: the
+   * restored post would carry `mediaIds` that no longer resolve and its photos
+   * would silently disappear. The sweep is deferred to the end of the window
+   * instead, and decides what to do by asking whether *this* snapshot is still
+   * the open one:
+   *
+   *  - still open  — the window closed with no undo, so retire it and collect;
+   *  - superseded  — a newer deletion owns the window; its timer will collect;
+   *  - cleared     — the user undid, and the restored post references its media
+   *                  again, so collecting is naturally a no-op.
+   */
+  function scheduleMediaCollection(snapshot: PostRemovalSnapshot): void {
+    if (collectionTimer !== null) clearTimeout(collectionTimer)
+    collectionTimer = setTimeout(() => {
+      collectionTimer = null
+      // Compared by id rather than by reference: Pinia hands back a reactive
+      // proxy of the snapshot, so `===` against the raw object never matches.
+      const ownId = snapshot.posts[0]?.id ?? null
+      const openId = ui.postSnapshot?.posts[0]?.id ?? null
+      if (ownId !== null && openId === ownId) {
+        ui.clearPostSnapshot()
+        collectMedia()
+      }
+    }, POST_UNDO_MS)
+  }
+
+  /** Cancels a pending sweep, for callers that tear down mid-window. */
+  function cancelMediaCollection(): void {
+    if (collectionTimer === null) return
+    clearTimeout(collectionTimer)
+    collectionTimer = null
   }
 
   async function run(postId: string, action: PostActionId): Promise<void> {
@@ -104,20 +144,9 @@ export function usePostActions(): PostActionController {
           ui.toast({ tone: 'warn', message: 'That post no longer exists.' })
           return
         }
-        collectMedia()
-        ui.toast({
-          tone: 'neutral',
-          message:
-            snapshot.posts.length > 1
-              ? `Deleted ${snapshot.posts.length} posts`
-              : 'Post deleted',
-          durationMs: POST_UNDO_MS,
-          actionLabel: 'Undo',
-          onAction: () => {
-            posts.restore(snapshot)
-            ui.toast({ tone: 'ok', message: 'Post restored' })
-          },
-        })
+        // The store raises the single "Deleted ... Undo" toast, which restores
+        // the posts *and* their media. Collection waits for that window to end.
+        scheduleMediaCollection(snapshot)
         return
       }
 
@@ -127,5 +156,5 @@ export function usePostActions(): PostActionController {
     }
   }
 
-  return { run, collectMedia }
+  return { run, collectMedia, cancelMediaCollection }
 }
