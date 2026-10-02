@@ -13,7 +13,7 @@
  */
 import { computed } from 'vue'
 import DayCell from '@/components/calendar/DayCell.vue'
-import { WEEKDAY_MIN } from '@/lib/datetime'
+import { dayOfMonth, WEEKDAY_MIN } from '@/lib/datetime'
 import { cx } from '@/lib/utils'
 import { PLATFORMS } from '@/lib/platforms'
 import { useAccountsStore } from '@/stores/useAccountsStore'
@@ -109,7 +109,7 @@ function dotsFor(posts: Post[]): { color: string; key: string }[] {
             )
           "
         >
-          {{ cell.date.getUTCDate() }}
+          {{ dayOfMonth(cell.key) }}
         </span>
         <span class="flex h-1.5 items-center gap-0.5" aria-hidden="true">
           <span

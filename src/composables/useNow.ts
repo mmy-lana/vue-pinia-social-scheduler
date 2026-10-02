@@ -33,8 +33,16 @@ export function useNow(intervalMs = 1_000): NowClock {
 
   const msUntil = (iso: ISODateString): number => new Date(iso).getTime() - now.value.getTime()
 
-  const countdown = (iso: ISODateString): ComputedRef<CountdownParts> =>
-    computed(() => countdownParts(iso, now.value))
+  const countdownCache = new Map<ISODateString, ComputedRef<CountdownParts>>()
+
+  const countdown = (iso: ISODateString): ComputedRef<CountdownParts> => {
+    let cached = countdownCache.get(iso)
+    if (!cached) {
+      cached = computed(() => countdownParts(iso, now.value))
+      countdownCache.set(iso, cached)
+    }
+    return cached
+  }
 
   return { now, nowIso, nowMs, msUntil, countdown, stop: pause }
 }

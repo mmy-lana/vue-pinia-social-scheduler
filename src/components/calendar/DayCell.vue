@@ -59,35 +59,41 @@ const fullLabel = computed<string>(() => formatDayWithWeekday(props.dayKey, sett
     <div class="flex items-center justify-between gap-1">
       <button
         type="button"
-        :class="
-          cx(
-            'tap-target flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums',
-            'motion-safe:transition-colors motion-safe:duration-150',
-            isToday
-              ? 'bg-brand-600 text-white'
-              : isSelected
-                ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'
-                : inMonth
-                  ? 'text-ink motion-safe:hover:bg-surface-muted'
-                  : 'text-ink-muted',
-          )
-        "
+        class="flex min-h-11 min-w-7 shrink-0 items-center justify-center rounded-control focus-visible:ring-2 focus-visible:ring-brand-500/40"
         :aria-label="`${fullLabel}, ${posts.length} posts`"
         :aria-current="isToday ? 'date' : undefined"
         data-testid="calendar-day-number"
         @click="emit('select', dayKey)"
       >
-        {{ dayNumber }}
+        <span
+          :class="
+            cx(
+              'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums',
+              'motion-safe:transition-colors motion-safe:duration-150',
+              isToday
+                ? 'bg-brand-600 text-white'
+                : isSelected
+                  ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300'
+                  : inMonth
+                    ? 'text-ink motion-safe:hover:bg-surface-muted'
+                    : 'text-ink-muted',
+            )
+          "
+        >
+          {{ dayNumber }}
+        </span>
       </button>
 
       <button
         type="button"
-        class="tap-target flex size-7 shrink-0 items-center justify-center rounded-full text-ink-muted motion-safe:hover:bg-surface-muted motion-safe:hover:text-ink"
+        class="flex min-h-11 min-w-7 shrink-0 items-center justify-center rounded-control text-ink-muted focus-visible:ring-2 focus-visible:ring-brand-500/40 motion-safe:hover:text-ink"
         :aria-label="`Add a post on ${fullLabel}`"
         data-testid="calendar-day-add"
         @click="emit('add', dayKey)"
       >
-        +
+        <span class="flex size-7 shrink-0 items-center justify-center rounded-full motion-safe:hover:bg-surface-muted">
+          +
+        </span>
       </button>
     </div>
 
