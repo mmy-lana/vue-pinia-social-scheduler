@@ -1,3 +1,4 @@
+import { getCurrentScope, onScopeDispose } from 'vue'
 import type { PiniaPluginContext, StoreGeneric } from 'pinia'
 import { STORAGE_KEYS, readEnvelope, writeEnvelope } from '@/lib/storage'
 import { debounce } from '@/lib/utils'
@@ -65,8 +66,27 @@ function persistable(store: StoreGeneric): PersistableStore {
   return store as unknown as PersistableStore
 }
 
-/** Every registered store's write-now function, in registration order. */
-const forceFlushers = new Set<() => void>()
+/**
+ * Write-now functions, keyed by the persistence key they belong to.
+ *
+ * Keyed rather than collected: every store registers one, and a test or a hot
+ * reload can build store instances repeatedly. A plain `Set` accumulated one
+ * closure per instance forever, each still holding its store alive, so the
+ * registry grew without bound and `flushPersistence` kept writing to abandoned
+ * stores. Keying also means re-registering a key replaces the previous closure
+ * instead of adding a second one.
+ */
+const forceFlushers = new Map<string, () => void>()
+
+/**
+ * Removes a store's writer from the registry.
+ *
+ * Called when a store is disposed so a torn-down instance is neither written to
+ * nor kept alive by the registry.
+ */
+export function unregisterStorePersistence(key: string): void {
+  forceFlushers.delete(key)
+}
 
 /**
  * While true, no store writes to LocalStorage.
@@ -101,7 +121,7 @@ export function isPersistenceSuppressedNow(): boolean {
  * so forcing it is safe and cheap.
  */
 export function flushPersistence(): void {
-  for (const force of forceFlushers) force()
+  for (const force of forceFlushers.values()) force()
 }
 
 export function persistencePlugin({ store }: PiniaPluginContext): void {
@@ -142,25 +162,17 @@ export function persistencePlugin({ store }: PiniaPluginContext): void {
   const debouncedFlush = debounce(flush, api.debounceMs ?? 150)
   // Cancel the timer, then write whatever the store holds right now — including
   // changes made so recently that `$subscribe` has not scheduled a write yet.
-  forceFlushers.add(() => {
+  forceFlushers.set(api.key, () => {
     debouncedFlush.cancel()
     flush()
   })
 
-  store.$subscribe(
-    () => {
-      if (applyingExternal) return
-      debouncedFlush()
-    },
-    { detached: true, flush: 'post' },
-  )
-
-  window.addEventListener('pagehide', () => {
+  const onPageHide = (): void => {
     if (isPersistenceSuppressed) return
     debouncedFlush.flush()
-  })
+  }
 
-  window.addEventListener('storage', (event) => {
+  const onStorage = (event: StorageEvent): void => {
     if (event.key !== api.key || event.newValue === null) return
     const fresh = readEnvelope<unknown>(api.key, api.version, api.fallback, api.migrations)
     const parsed = api.parse(fresh)
@@ -173,5 +185,27 @@ export function persistencePlugin({ store }: PiniaPluginContext): void {
     setTimeout(() => {
       applyingExternal = false
     }, 0)
-  })
+  }
+
+  // A disposed store must stop writing, and must not be retained by the
+  // registry. Both listeners go with it.
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      unregisterStorePersistence(api.key)
+      window.removeEventListener('pagehide', onPageHide)
+      window.removeEventListener('storage', onStorage)
+    })
+  }
+
+  store.$subscribe(
+    () => {
+      if (isPersistenceSuppressed) return
+      if (applyingExternal) return
+      debouncedFlush()
+    },
+    { detached: true, flush: 'post' },
+  )
+
+  window.addEventListener('pagehide', onPageHide)
+  window.addEventListener('storage', onStorage)
 }

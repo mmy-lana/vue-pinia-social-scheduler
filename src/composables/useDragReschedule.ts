@@ -61,7 +61,7 @@ export interface DragReschedule {
 
 interface Pending {
   post: Post
-  source: HTMLElement | null
+  source: CapturableElement | null
   startX: number
   startY: number
   x: number
@@ -77,11 +77,17 @@ function labelFor(post: Post): string {
   return text.length > GHOST_LABEL_MAX ? text.slice(0, GHOST_LABEL_MAX) : text
 }
 
+/**
+ * Elements a drag can be anchored to. Both carry an inline `style`, which is
+ * where `touch-action: none` is set for the duration of the gesture.
+ */
+type CapturableElement = HTMLElement | SVGElement
+
 function canDrag(post: Post): boolean {
   return (post.status === 'scheduled' || post.status === 'draft') && post.scheduledAt !== null
 }
 
-function capture(element: HTMLElement | null, pointerId: number | null): void {
+function capture(element: CapturableElement | null, pointerId: number | null): void {
   if (!element || pointerId === null) return
   if (typeof element.setPointerCapture !== 'function') return
   try {
@@ -91,7 +97,7 @@ function capture(element: HTMLElement | null, pointerId: number | null): void {
   }
 }
 
-function release(element: HTMLElement | null, pointerId: number | null): void {
+function release(element: CapturableElement | null, pointerId: number | null): void {
   if (!element || pointerId === null) return
   if (typeof element.releasePointerCapture !== 'function') return
   try {
@@ -111,7 +117,7 @@ export function useDragReschedule(options: DragRescheduleOptions): DragReschedul
   let pending: Pending | null = null
   /** The post the current gesture started from; survives `cancel` so a drop can resolve. */
   let trackedPost: Post | null = null
-  let captured: HTMLElement | null = null
+  let captured: CapturableElement | null = null
   let capturedId: number | null = null
   let previousTouchAction: string | null = null
 
@@ -187,16 +193,38 @@ export function useDragReschedule(options: DragRescheduleOptions): DragReschedul
     targetKey.value = cell?.getAttribute('data-drop-day') ?? null
   }
 
-  function start(event: PointerEvent, post: Post): void {
+  /**
+ * The chip element a press began on.
+ *
+ * `event.target` is whatever was hit — the button's inner span, a lucide SVG, a
+ * status dot. Capturing that directly made the ghost inherit the sub-element's
+ * box, collapsing it to a few pixels, and set `touch-action: none` on the span
+ * instead of the chip, so the browser kept scrolling mid-drag. Walking up to the
+ * chip root keeps the gesture anchored to the thing the user aimed at.
+ */
+function resolveSource(event: PointerEvent): CapturableElement | null {
+  const target = event.target
+  // `Element`, not `HTMLElement`: a press can land on the lucide glyph, which
+  // is an SVGElement and would be discarded by an HTMLElement-only guard.
+  if (!(target instanceof Element)) return null
+  return styled(target.closest('[data-testid="calendar-chip"]') ?? target)
+}
+
+/** Narrows to the two element kinds that carry an inline `style`. */
+function styled(element: Element | null): CapturableElement | null {
+  if (element instanceof HTMLElement || element instanceof SVGElement) return element
+  return null
+}
+
+function start(event: PointerEvent, post: Post): void {
     if (!enabled.value) return
     if (dragging.value || pending !== null) return
     if (!canDrag(post)) return
     if (event.button !== undefined && event.button > 0) return
 
-    const target = event.target
     const state: Pending = {
       post,
-      source: target instanceof HTMLElement ? target : null,
+      source: resolveSource(event),
       startX: event.clientX,
       startY: event.clientY,
       x: event.clientX,

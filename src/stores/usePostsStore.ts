@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { PostSchema, parseArray } from '@/lib/schemas'
-import { newId } from '@/lib/utils'
+import { newId, pluralize } from '@/lib/utils'
 import { byScheduledAt, dayKey, startOfWeekKey, dayKeyOf } from '@/lib/datetime'
 import { computeNextSlot } from '@/lib/queue'
 import {
@@ -540,7 +540,15 @@ export const usePostsStore = defineStore('posts', () => {
     const raw = readEnvelope<unknown>(STORE_KEYS.posts, 1, [])
     const parsed = parseArray(PostSchema, raw)
     posts.value = parsed.data
-    if (parsed.dropped > 0) droppedCount.value = parsed.dropped
+    if (parsed.dropped > 0) {
+      droppedCount.value = parsed.dropped
+      // The records are already gone from the user's timeline, so silently
+      // discarding them reads as the app losing work. Say so instead.
+      useUiStore().toast({
+        tone: 'warn',
+        message: `${parsed.dropped} corrupted ${pluralize(parsed.dropped, 'post')} removed from storage.`,
+      })
+    }
     return parsed.dropped
   }
 

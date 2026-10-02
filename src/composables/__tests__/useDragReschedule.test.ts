@@ -223,3 +223,78 @@ describe('useDragReschedule', () => {
     expect(isEnabled).toHaveBeenCalled()
   })
 })
+
+describe('drag source resolution', () => {
+  /**
+   * The chip is a button containing spans and an SVG. A press on any of those
+   * used to capture the sub-element, which collapsed the ghost's width and put
+   * `touch-action: none` on the wrong node so the page kept scrolling.
+   */
+  function mountNestedChip(): { chip: HTMLElement; inner: HTMLElement; svg: SVGElement } {
+    const cell = document.createElement('div')
+    cell.setAttribute('data-drop-day', DAY_KEY)
+
+    const chip = document.createElement('button')
+    chip.setAttribute('data-testid', 'calendar-chip')
+
+    const inner = document.createElement('span')
+    inner.textContent = 'Inside the chip'
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('class', 'size-2')
+
+    chip.append(inner, svg)
+    cell.append(chip)
+    document.body.append(cell)
+    return { chip, inner, svg }
+  }
+
+  function pressOn(element: Element, x: number, y: number): PointerEvent {
+    const event = new PointerEvent('pointerdown', {
+      pointerType: 'mouse',
+      clientX: x,
+      clientY: y,
+      button: 0,
+      bubbles: true,
+      cancelable: true,
+    })
+    Object.defineProperty(event, 'target', { value: element, configurable: true })
+    return event
+  }
+
+  it('anchors the gesture to the chip when a nested span is pressed', () => {
+    const { chip, inner } = mountNestedChip()
+    const controller = useDragReschedule({
+      resolveIso: () => MOVED_ISO,
+      isEnabled: () => true,
+      applyIso: () => {},
+    })
+
+    controller.start(pressOn(inner, 10, 10), makePost({ id: 'p1', scheduledAt: MOVED_ISO }))
+    controller.move(
+      new PointerEvent('pointermove', { pointerType: 'mouse', clientX: 40, clientY: 40, bubbles: true }),
+    )
+
+    expect(controller.dragging.value).toBe(true)
+    expect(controller.ghost.value?.width).toBe(chip.getBoundingClientRect().width)
+    // The lock belongs on the chip, so the browser stops scrolling the page.
+    expect(chip.style.touchAction).toBe('none')
+    controller.cancel()
+  })
+
+  it('anchors the gesture to the chip when the SVG glyph is pressed', () => {
+    const { chip, svg } = mountNestedChip()
+    const controller = useDragReschedule({
+      resolveIso: () => MOVED_ISO,
+      isEnabled: () => true,
+      applyIso: () => {},
+    })
+
+    controller.start(pressOn(svg, 10, 10), makePost({ id: 'p2', scheduledAt: MOVED_ISO }))
+    controller.move(
+      new PointerEvent('pointermove', { pointerType: 'mouse', clientX: 40, clientY: 40, bubbles: true }),
+    )
+
+    expect(chip.style.touchAction).toBe('none')
+    controller.cancel()
+  })
+})
