@@ -9,7 +9,7 @@
  */
 import { computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { Radio, TriangleAlert, Users } from 'lucide-vue-next'
+import { BookOpen, Radio, TriangleAlert, Users } from 'lucide-vue-next'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseSheet from '@/components/ui/BaseSheet.vue'
 import { SECONDARY_NAV } from '@/components/shell/SidebarNav.vue'
@@ -40,6 +40,11 @@ const failedCount = computed(() => posts.failed.length)
 async function go(to: string): Promise<void> {
   open.value = false
   await router.push(to)
+}
+
+function openGuide(): void {
+  open.value = false
+  ui.openGuide()
 }
 </script>
 
@@ -83,6 +88,16 @@ async function go(to: string): Promise<void> {
           <Radio class="size-5 shrink-0 text-ink-muted" aria-hidden="true" />
           <span>Timeline</span>
         </RouterLink>
+
+        <button
+          type="button"
+          class="tap-target flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-left text-sm font-medium text-ink motion-safe:hover:bg-surface-muted"
+          data-testid="more-sheet-guide"
+          @click="openGuide"
+        >
+          <BookOpen class="size-5 shrink-0 text-ink-muted" aria-hidden="true" />
+          <span>Guide &amp; Manual</span>
+        </button>
       </div>
 
       <div class="mt-4 flex flex-col gap-2 border-t border-line pt-4">

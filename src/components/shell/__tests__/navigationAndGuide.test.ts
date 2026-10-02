@@ -4,7 +4,9 @@ import { createPinia, setActivePinia } from 'pinia'
 import { mount } from '@vue/test-utils'
 import { PRIMARY_NAV, SECONDARY_NAV } from '@/components/shell/SidebarNav.vue'
 import SidebarNav from '@/components/shell/SidebarNav.vue'
+import MoreSheet from '@/components/shell/MoreSheet.vue'
 import AppGuideModal from '@/components/common/AppGuideModal.vue'
+import { useUiStore } from '@/stores/useUiStore'
 import { PLATFORM_IDS, PLATFORMS } from '@/lib/platforms'
 
 vi.mock('vue-router', () => ({
@@ -193,6 +195,22 @@ describe('AppGuideModal', () => {
 
     expect(wrapper.emitted('close')).toHaveLength(1)
     expect(wrapper.emitted('update:open')?.[0]).toEqual([false])
+    wrapper.unmount()
+  })
+
+  it('triggers the guide modal from the mobile more sheet', async () => {
+    const ui = useUiStore()
+    ui.setMoreSheetOpen(true)
+
+    const wrapper = mount(MoreSheet, { attachTo: document.body })
+    const guideButton = document.body.querySelector('[data-testid="more-sheet-guide"]')
+    expect(guideButton).not.toBeNull()
+
+    guideButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    expect(ui.guideOpen).toBe(true)
+    expect(ui.moreSheetOpen).toBe(false)
     wrapper.unmount()
   })
 })

@@ -27,46 +27,49 @@ export function usePostActions(): PostActionController {
   const scheduler = useSchedulerStore()
   const media = useMediaStore()
 
-  let collectionTimer: ReturnType<typeof setTimeout> | null = null
+  const pendingCollectionTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   function collectMedia(): void {
-    media.gc(posts.referencedMediaIds())
+    const protectedIds = new Set<string>()
+    if (ui.postSnapshot) {
+      for (const asset of ui.postSnapshot.media) protectedIds.add(asset.id)
+    }
+    const referenced = posts.referencedMediaIds()
+    media.gc(new Set([...referenced, ...protectedIds]))
   }
 
   /**
    * Sweeps media left unreferenced by a deletion, once the undo window closes.
    *
-   * Collecting immediately would destroy the very assets an undo needs: the
-   * restored post would carry `mediaIds` that no longer resolve and its photos
-   * would silently disappear. The sweep is deferred to the end of the window
-   * instead, and decides what to do by asking whether *this* snapshot is still
-   * the open one:
-   *
-   *  - still open  — the window closed with no undo, so retire it and collect;
-   *  - superseded  — a newer deletion owns the window; its timer will collect;
-   *  - cleared     — the user undid, and the restored post references its media
-   *                  again, so collecting is naturally a no-op.
+   * Active undo snapshot assets are shielded from collection, and each deleted
+   * post group is tracked by an independent timer to prevent chained deletions
+   * from dropping garbage collection callbacks.
    */
   function scheduleMediaCollection(snapshot: PostRemovalSnapshot): void {
-    if (collectionTimer !== null) clearTimeout(collectionTimer)
-    collectionTimer = setTimeout(() => {
-      collectionTimer = null
-      // Compared by id rather than by reference: Pinia hands back a reactive
-      // proxy of the snapshot, so `===` against the raw object never matches.
-      const ownId = snapshot.posts[0]?.id ?? null
-      const openId = ui.postSnapshot?.posts[0]?.id ?? null
-      if (ownId !== null && openId === ownId) {
+    const groupId = snapshot.posts[0]?.groupId ?? snapshot.posts[0]?.id ?? null
+    if (groupId === null) return
+
+    const existingTimer = pendingCollectionTimers.get(groupId)
+    if (existingTimer !== undefined) clearTimeout(existingTimer)
+
+    const timer = setTimeout(() => {
+      pendingCollectionTimers.delete(groupId)
+      const openGroupId = ui.postSnapshot?.posts[0]?.groupId ?? ui.postSnapshot?.posts[0]?.id ?? null
+      if (openGroupId === groupId) {
         ui.clearPostSnapshot()
-        collectMedia()
       }
+      collectMedia()
     }, POST_UNDO_MS)
+
+    pendingCollectionTimers.set(groupId, timer)
   }
 
-  /** Cancels a pending sweep, for callers that tear down mid-window. */
+  /** Cancels all pending sweeps, for callers that tear down mid-window. */
   function cancelMediaCollection(): void {
-    if (collectionTimer === null) return
-    clearTimeout(collectionTimer)
-    collectionTimer = null
+    for (const timer of pendingCollectionTimers.values()) {
+      clearTimeout(timer)
+    }
+    pendingCollectionTimers.clear()
   }
 
   async function run(postId: string, action: PostActionId): Promise<void> {
