@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+@variant dark (&:where(.dark, :is(.dark *)));
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-brand-50:  oklch(0.97 0.02 265);
+  --color-brand-100: oklch(0.93 0.04 265);
+  --color-brand-500: oklch(0.58 0.19 265);
+  --color-brand-600: oklch(0.52 0.20 265);
+  --color-brand-700: oklch(0.46 0.19 265);
+
+  --color-canvas:        oklch(0.97 0.005 260);
+  --color-surface:       oklch(1 0 0);
+  --color-surface-muted: oklch(0.96 0.006 260);
+  --color-line:          oklch(0.91 0.008 260);
+  --color-ink:           oklch(0.22 0.02 260);
+  --color-ink-muted:     oklch(0.50 0.02 260);
+
+  --color-ok:      oklch(0.62 0.15 150);
+  --color-warn:    oklch(0.76 0.15 75);
+  --color-danger:  oklch(0.58 0.21 25);
+  --color-info:    oklch(0.62 0.14 235);
+
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 2px oklch(0.2 0.02 260 / 0.06), 0 4px 16px oklch(0.2 0.02 260 / 0.05);
+  --shadow-pop:  0 10px 40px oklch(0.2 0.02 260 / 0.18);
+
+  --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root.dark {
+  --color-canvas: oklch(0.17 0.01 260);
+  --color-surface: oklch(0.21 0.012 260);
+  --color-surface-muted: oklch(0.25 0.012 260);
+  --color-line: oklch(0.31 0.012 260);
+  --color-ink: oklch(0.96 0.005 260);
+  --color-ink-muted: oklch(0.72 0.01 260);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+}

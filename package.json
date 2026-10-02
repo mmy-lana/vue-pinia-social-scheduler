@@ -1,0 +1,42 @@
+{
+  "name": "vue-pinia-social-scheduler",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@date-fns/tz": "latest",
+    "@fontsource-variable/inter": "latest",
+    "@vueuse/core": "latest",
+    "date-fns": "latest",
+    "lucide-vue-next": "latest",
+    "pinia": "latest",
+    "vue": "latest",
+    "vue-router": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "latest",
+    "@types/node": "latest",
+    "@vitejs/plugin-vue": "latest",
+    "@vue/test-utils": "latest",
+    "eslint": "latest",
+    "eslint-plugin-vue": "latest",
+    "happy-dom": "latest",
+    "prettier": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "typescript-eslint": "latest",
+    "vite": "latest",
+    "vitest": "latest",
+    "vue-tsc": "latest"
+  }
+}
