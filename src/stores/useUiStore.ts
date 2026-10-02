@@ -30,6 +30,8 @@ export const useUiStore = defineStore('ui', () => {
   })
   const toasts = ref<Toast[]>([])
   const moreSheetOpen = ref(false)
+  /** The help manual is global: reachable from the top bar and the sidebar. */
+  const guideOpen = ref(false)
   const storageBannerDismissed = ref(false)
   const onboardingDismissed = ref(false)
   /** 8-second undo windows for the two destructive flows. */
@@ -60,6 +62,14 @@ export const useUiStore = defineStore('ui', () => {
 
   function setMoreSheetOpen(open: boolean): void {
     moreSheetOpen.value = open
+  }
+
+  function openGuide(): void {
+    guideOpen.value = true
+  }
+
+  function closeGuide(): void {
+    guideOpen.value = false
   }
 
   function toast(input: ToastInput): string {
@@ -150,6 +160,7 @@ export const useUiStore = defineStore('ui', () => {
     composer,
     toasts,
     moreSheetOpen,
+    guideOpen,
     storageBannerDismissed,
     onboardingDismissed,
     accountSnapshot,
@@ -160,6 +171,8 @@ export const useUiStore = defineStore('ui', () => {
     openComposer,
     closeComposer,
     setMoreSheetOpen,
+    openGuide,
+    closeGuide,
     toast,
     dismissToast,
     runToastAction,

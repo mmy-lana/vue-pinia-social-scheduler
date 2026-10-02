@@ -9,7 +9,7 @@
  */
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Plus } from 'lucide-vue-next'
+import { BookOpen, Plus } from 'lucide-vue-next'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseIconButton from '@/components/ui/BaseIconButton.vue'
@@ -59,6 +59,14 @@ const engineState = computed<{ tone: ToastTone; label: string }>(() => {
         {{ engineState.label }}
       </BaseBadge>
     </div>
+
+    <BaseIconButton
+      label="Guide and manual"
+      :icon="BookOpen"
+      variant="ghost"
+      data-testid="top-bar-guide"
+      @click="ui.openGuide()"
+    />
 
     <BaseIconButton
       v-if="isMobile"

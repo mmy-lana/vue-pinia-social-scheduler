@@ -20,6 +20,7 @@
  */
 import { computed, onErrorCaptured, ref } from 'vue'
 import { RouterView } from 'vue-router'
+import AppGuideModal from '@/components/common/AppGuideModal.vue'
 import BaseBanner from '@/components/ui/BaseBanner.vue'
 import BottomNav from '@/components/shell/BottomNav.vue'
 import ComposerSheet from '@/components/composer/ComposerSheet.vue'
@@ -29,7 +30,9 @@ import RightRail from '@/components/shell/RightRail.vue'
 import SidebarNav from '@/components/shell/SidebarNav.vue'
 import TopBar from '@/components/shell/TopBar.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useUiStore } from '@/stores/useUiStore'
 
+const ui = useUiStore()
 const { isMobile, isDesktop, isWide } = useBreakpoint()
 
 /** 768–1023 px: keep navigation present but give the content the width. */
@@ -61,22 +64,32 @@ function retryRoute(): void {
   routeError.value = null
   window.location.reload()
 }
+
+function onGuideOpen(): void {
+  ui.openGuide()
+}
 </script>
 
 <template>
   <div class="flex min-h-dvh flex-col bg-canvas" data-testid="app-shell">
     <div class="flex min-h-dvh flex-1">
+      <!--
+        Sticky and independently scrollable. As a plain flex child the column
+        stretched to the content height and scrolled away with the page, taking
+        its first entries out of reach; pinning it to the viewport and giving it
+        its own scroll context keeps every row reachable at any page length.
+      -->
       <aside
         v-if="isDesktop"
-        class="w-64 shrink-0 border-e border-line bg-surface"
+        class="sticky top-0 h-screen w-64 shrink-0 overflow-y-auto border-e border-line bg-surface"
         data-testid="app-shell-sidebar"
       >
-        <SidebarNav />
+        <SidebarNav @guide="onGuideOpen" />
       </aside>
 
       <aside
         v-else-if="isTablet"
-        class="w-[72px] shrink-0 border-e border-line bg-surface"
+        class="sticky top-0 h-screen w-[72px] shrink-0 overflow-y-auto border-e border-line bg-surface"
         data-testid="app-shell-rail"
       >
         <SidebarNav compact />
@@ -114,5 +127,10 @@ function retryRoute(): void {
 
     <MoreSheet />
     <ComposerSheet />
+    <AppGuideModal
+      :open="ui.guideOpen"
+      @update:open="ui.closeGuide()"
+      @close="ui.closeGuide()"
+    />
   </div>
 </template>

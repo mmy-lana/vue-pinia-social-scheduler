@@ -30,15 +30,20 @@ export const SECONDARY_NAV: readonly NavEntry[] = [
 
 <script setup lang="ts">
 /**
- * Primary navigation for the ≥ 1024 px layout.
+ * Primary navigation for the ≥ 768 px layouts.
  *
  * Six destinations, always labelled: an icon never carries meaning on its own.
  * The active row is marked with `aria-current="page"` plus a filled pill, so the
  * current page is legible without depending on colour alone.
+ *
+ * The brand block is part of the scroll container rather than pinned outside
+ * it, so the whole column — header included — scrolls as one unit and nothing
+ * can be clipped by the parent flex row.
  */
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { CalendarDays, Inbox, ListOrdered, Radio, Settings, Users } from 'lucide-vue-next'
+import { BookOpen, CalendarDays, Inbox, ListOrdered, Radio, Settings, Users } from 'lucide-vue-next'
+import BaseBadge from '@/components/ui/BaseBadge.vue'
 import { cx } from '@/lib/utils'
 
 const props = withDefaults(
@@ -55,6 +60,10 @@ const props = withDefaults(
   },
 )
 
+const emit = defineEmits<{
+  guide: []
+}>()
+
 const ALL_ENTRIES = computed<NavEntry[]>(() => [...PRIMARY_NAV, ...SECONDARY_NAV])
 
 const route = useRoute()
@@ -67,6 +76,7 @@ const activeName = computed<string | null>(() => {
 function linkClasses(name: string): string {
   return cx(
     'tap-target flex rounded-control text-sm font-medium',
+    'focus-visible:ring-brand-500 focus-visible:ring-2',
     'motion-safe:transition-colors motion-safe:duration-150',
     props.compact ? 'justify-center px-0 py-2' : 'items-center gap-3 px-3',
     activeName.value === name
@@ -78,11 +88,28 @@ function linkClasses(name: string): string {
 
 <template>
   <nav
-    class="flex h-full flex-col gap-1 py-4"
+    class="flex h-full flex-col gap-1 pt-4 pb-4"
     :class="props.compact ? 'px-2' : 'px-3'"
     aria-label="Primary"
     data-testid="sidebar-nav"
   >
+    <div
+      class="mb-3 flex items-center gap-2 border-b border-line pb-3"
+      :class="props.compact ? 'justify-center' : ''"
+      data-testid="sidebar-brand"
+    >
+      <span
+        class="flex size-8 shrink-0 items-center justify-center rounded-control bg-brand-600 text-sm font-bold text-white"
+        aria-hidden="true"
+      >
+        SS
+      </span>
+      <span v-if="!props.compact" class="min-w-0 flex-1">
+        <span class="block truncate text-sm font-bold text-ink">Social Scheduler</span>
+        <BaseBadge tone="ok" size="sm" class="mt-0.5">Local-First</BaseBadge>
+      </span>
+    </div>
+
     <RouterLink
       v-for="entry in ALL_ENTRIES"
       :key="entry.name"
@@ -97,5 +124,17 @@ function linkClasses(name: string): string {
       <component :is="entry.icon" class="size-5 shrink-0" aria-hidden="true" />
       <span v-if="!props.compact" class="truncate">{{ entry.label }}</span>
     </RouterLink>
+
+    <div v-if="!props.compact" class="mt-auto pt-4">
+      <button
+        type="button"
+        class="tap-target flex w-full items-center gap-3 rounded-control px-3 text-sm font-medium text-ink-muted focus-visible:ring-brand-500 focus-visible:ring-2 motion-safe:hover:bg-surface-muted motion-safe:hover:text-ink"
+        data-testid="sidebar-nav-guide"
+        @click="emit('guide')"
+      >
+        <BookOpen class="size-5 shrink-0" aria-hidden="true" />
+        <span class="truncate">Guide &amp; Manual</span>
+      </button>
+    </div>
   </nav>
 </template>
