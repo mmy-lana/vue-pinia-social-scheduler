@@ -1,6 +1,8 @@
 <template>
   <main class="p-6">
-    <h1 class="text-2xl font-bold">Queue</h1>
+    <h1 class="text-2xl font-bold">
+      Queue
+    </h1>
   </main>
 </template>
 

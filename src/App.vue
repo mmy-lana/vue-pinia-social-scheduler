@@ -1,5 +1,8 @@
 <template>
-  <div id="root" class="min-h-screen bg-canvas text-ink">
+  <div
+    id="root"
+    class="min-h-screen bg-canvas text-ink"
+  >
     <RouterView />
   </div>
 </template>

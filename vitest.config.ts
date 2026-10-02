@@ -1,0 +1,22 @@
+import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from 'vitest/config'
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [vue(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  test: {
+    environment: 'happy-dom',
+    include: ['src/**/__tests__/**/*.test.ts'],
+    setupFiles: ['./tests/setup.ts'],
+    restoreMocks: true,
+    clearMocks: true,
+    unstubEnvs: true,
+    unstubGlobals: true,
+  },
+})

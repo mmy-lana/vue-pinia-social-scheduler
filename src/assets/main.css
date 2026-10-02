@@ -1,32 +1,44 @@
-@import "tailwindcss";
-@import "@fontsource-variable/inter";
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
 
+/*
+ * Dark mode is driven by a `.dark` class on <html> (see composables/useTheme.ts),
+ * resolved from the `system` preference with matchMedia. Tokens are plain CSS
+ * custom properties so a single class swap re-themes the whole app.
+ */
 @variant dark (&:where(.dark, :is(.dark *)));
 
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --color-brand-50:  oklch(0.97 0.02 265);
+  /* Brand — a calm indigo that stays legible on both canvases. */
+  --color-brand-50: oklch(0.97 0.02 265);
   --color-brand-100: oklch(0.93 0.04 265);
+  --color-brand-200: oklch(0.87 0.07 265);
+  --color-brand-300: oklch(0.75 0.13 265);
   --color-brand-500: oklch(0.58 0.19 265);
-  --color-brand-600: oklch(0.52 0.20 265);
+  --color-brand-600: oklch(0.52 0.2 265);
   --color-brand-700: oklch(0.46 0.19 265);
 
-  --color-canvas:        oklch(0.97 0.005 260);
-  --color-surface:       oklch(1 0 0);
+  /* Neutrals — the Buffer/Hootsuite "card on canvas" look. */
+  --color-canvas: oklch(0.97 0.005 260);
+  --color-surface: oklch(1 0 0);
   --color-surface-muted: oklch(0.96 0.006 260);
-  --color-line:          oklch(0.91 0.008 260);
-  --color-ink:           oklch(0.22 0.02 260);
-  --color-ink-muted:     oklch(0.50 0.02 260);
+  --color-line: oklch(0.91 0.008 260);
+  --color-ink: oklch(0.22 0.02 260);
+  --color-ink-muted: oklch(0.5 0.02 260);
 
-  --color-ok:      oklch(0.62 0.15 150);
-  --color-warn:    oklch(0.76 0.15 75);
-  --color-danger:  oklch(0.58 0.21 25);
-  --color-info:    oklch(0.62 0.14 235);
+  /* Semantic status colors, one per post state. */
+  --color-ok: oklch(0.62 0.15 150);
+  --color-warn: oklch(0.76 0.15 75);
+  --color-danger: oklch(0.58 0.21 25);
+  --color-info: oklch(0.62 0.14 235);
 
   --radius-card: 1rem;
+  --radius-control: 0.75rem;
+
   --shadow-card: 0 1px 2px oklch(0.2 0.02 260 / 0.06), 0 4px 16px oklch(0.2 0.02 260 / 0.05);
-  --shadow-pop:  0 10px 40px oklch(0.2 0.02 260 / 0.18);
+  --shadow-pop: 0 10px 40px oklch(0.2 0.02 260 / 0.18);
 
   --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -38,16 +50,22 @@
   --color-line: oklch(0.31 0.012 260);
   --color-ink: oklch(0.96 0.005 260);
   --color-ink-muted: oklch(0.72 0.01 260);
+
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.4), 0 4px 16px oklch(0 0 0 / 0.28);
+  --shadow-pop: 0 10px 40px oklch(0 0 0 / 0.55);
 }
 
 @layer base {
   html {
     color-scheme: light;
     -webkit-tap-highlight-color: transparent;
+    scrollbar-gutter: stable;
   }
+
   html.dark {
     color-scheme: dark;
   }
+
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
@@ -55,9 +73,100 @@
     min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
+
   :focus-visible {
     outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
   }
+
+  ::selection {
+    background-color: color-mix(in oklch, var(--color-brand-500) 25%, transparent);
+  }
+
+  /* 16px keeps iOS from zooming when a field gains focus. */
+  input,
+  select,
+  textarea {
+    font-size: max(1rem, 0.875rem);
+  }
+
+  /* Native controls should not paint their own border in dark mode. */
+  select option {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Component-grade utilities
+ * ------------------------------------------------------------------ */
+
+/** The standard card: surface fill, hairline border, soft shadow. */
+@utility card-surface {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/** Minimum 44×44 touch target for every interactive control. */
+@utility tap-target {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility text-balance-pretty {
+  text-wrap: pretty;
+}
+
+/** Bottom padding that respects the iPhone home indicator. */
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+
+@utility pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+
+/** Clamp helpers used by the post card body. */
+@utility clamp-6 {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@utility clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@utility clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

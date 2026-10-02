@@ -1,7 +1,10 @@
 /// <reference types="vite/client" />
 
-declare module '*.vue' {
-  import type { DefineComponent } from 'vue'
-  const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
-  export default component
+interface ImportMetaEnv {
+  /** Optional deployment title override, see `.env.example`. */
+  readonly VITE_APP_TITLE?: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
 }

@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build": "pnpm run typecheck && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "vue-tsc --noEmit",
+    "test:watch": "vitest",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc -b tsconfig.node.json",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "pnpm run typecheck && pnpm run lint && pnpm run test && vite build"
   },
   "dependencies": {
     "@date-fns/tz": "latest",
@@ -24,19 +28,22 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "latest",
     "@types/node": "latest",
     "@vitejs/plugin-vue": "latest",
     "@vue/test-utils": "latest",
     "eslint": "latest",
     "eslint-plugin-vue": "latest",
+    "globals": "^17.13.0",
     "happy-dom": "latest",
     "prettier": "latest",
     "tailwindcss": "latest",
-    "typescript": "latest",
+    "typescript": "^6.0.3",
     "typescript-eslint": "latest",
     "vite": "latest",
     "vitest": "latest",
+    "vue-eslint-parser": "^10.4.1",
     "vue-tsc": "latest"
   }
 }
