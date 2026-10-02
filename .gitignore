@@ -2,6 +2,8 @@ node_modules
 dist
 dist-ssr
 coverage
+.pnpm-store
+.e2e
 *.local
 .vscode/*
 !.vscode/extensions.json
@@ -12,4 +14,4 @@ coverage
 *.njsproj
 *.sln
 *.sw?
-repomix-output.xml.pnpm-store
+repomix-output.xml

@@ -1,5 +1,5 @@
 import { computed, type ComputedRef, type ShallowRef } from 'vue'
-import { useBreakpoints, useWindowSize } from '@vueuse/core'
+import { useWindowSize } from '@vueuse/core'
 
 /** Tailwind-aligned breakpoints: 360/390/430 phones, 768 tablet, 1024 desktop, 1280 wide. */
 export const BREAKPOINTS = {
@@ -22,13 +22,12 @@ export interface Breakpoint {
 }
 
 export function useBreakpoint(): Breakpoint {
-  const breakpoints = useBreakpoints(BREAKPOINTS)
   const { width, height } = useWindowSize()
 
   const isMobile = computed(() => width.value < BREAKPOINTS.md)
   const isTablet = computed(() => width.value >= BREAKPOINTS.md && width.value < BREAKPOINTS.lg)
   const isDesktop = computed(() => width.value >= BREAKPOINTS.lg)
-  const isWide = computed(() => breakpoints.greaterOrEqual('xl').value)
+  const isWide = computed(() => width.value >= BREAKPOINTS.xl)
 
   return {
     width,

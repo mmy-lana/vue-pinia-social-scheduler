@@ -44,8 +44,15 @@ export default tseslint.config(
       'vue/multi-word-component-names': 'error',
       'vue/no-v-html': 'error',
       'vue/require-default-prop': 'off',
+      // `ariaLabel` is declared as a prop, so the template must use the camelCase
+      // spelling for the type checker to see it as the prop rather than an attr.
+      'vue/attribute-hyphenation': ['warn', 'always', { ignore: ['ariaLabel'] }],
       'vue/attributes-order': ['warn', { order: ['DEFINITION', 'LIST_RENDERING', 'CONDITIONALS', 'RENDER_MODIFIERS', 'GLOBAL', 'UNIQUE', 'TWO_WAY_BINDING', 'OTHER_DIRECTIVES', 'OTHER_ATTR', 'EVENTS', 'CONTENT'] }],
-      'vue/html-self-closing': ['warn', { html: { void: 'any', normal: 'always', component: 'always' } }],
+      // Formatting is owned exclusively by Prettier; these two stylistic rules
+      // fight its line-collapsing and would fight each developer forever.
+      'vue/max-attributes-per-line': 'off',
+      'vue/html-self-closing': 'off',
+      'vue/singleline-html-element-content-newline': 'off',
     },
   },
   {
@@ -58,7 +65,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['*.config.ts', '*.config.mjs', 'eslint.config.mjs'],
+    files: ['*.config.ts', '*.config.mjs', 'eslint.config.mjs', 'tools/**/*.mjs'],
     languageOptions: {
       globals: { ...globals.node },
     },

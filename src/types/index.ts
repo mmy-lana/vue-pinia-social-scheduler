@@ -158,7 +158,7 @@ export interface FieldErrors {
  * Application-level types (store + component contracts)
  * ------------------------------------------------------------------ */
 
-export type ToastTone = 'neutral' | 'info' | 'ok' | 'warn' | 'danger'
+export type ToastTone = 'neutral' | 'info' | 'ok' | 'warn' | 'danger' | 'brand'
 
 export interface ToastAction {
   label: string
@@ -261,6 +261,7 @@ export interface ConfirmRequest {
 export type ConfirmResponse = boolean | null
 
 export interface ConfirmDialogRequest extends ConfirmRequest {
+  id: string
   resolve: (value: ConfirmResponse) => void
 }
 

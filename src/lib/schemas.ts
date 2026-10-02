@@ -284,6 +284,18 @@ export function parseObject<T>(schema: z.ZodType<T>, raw: unknown, fallback: T):
   return { data: [fallback], dropped: raw === undefined || raw === null ? 0 : 1 }
 }
 
+export interface ParseOneResult<T> {
+  data: T
+  dropped: number
+}
+
+/** Single-record variant used for the settings object. */
+export function parseOne<T>(schema: z.ZodType<T>, raw: unknown, fallback: T): ParseOneResult<T> {
+  const parsed = schema.safeParse(raw)
+  if (parsed.success) return { data: parsed.data, dropped: 0 }
+  return { data: fallback, dropped: raw === undefined || raw === null ? 0 : 1 }
+}
+
 export function parseBundle(raw: unknown): ParseResult<z.infer<typeof DataBundleSchema>> {
   const parsed = DataBundleSchema.safeParse(raw)
   if (!parsed.success) return { data: [], dropped: 1 }
