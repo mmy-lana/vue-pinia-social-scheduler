@@ -14,7 +14,6 @@
 import { computed } from 'vue'
 import { CalendarClock } from 'lucide-vue-next'
 import BaseCard from '@/components/ui/BaseCard.vue'
-import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
 import PlatformIcon from '@/components/accounts/PlatformIcon.vue'
 import { useNow } from '@/composables/useNow'
 import { formatDuration, formatTime } from '@/lib/datetime'
@@ -87,34 +86,31 @@ const countdownText = computed(() => {
 
 <template>
   <BaseCard
-    padding="md"
-    class="flex h-full flex-col gap-4"
+    padding="sm"
+    class="flex flex-col gap-2.5 p-3.5"
     data-testid="next-up-card"
     :data-empty="String(scheduledPost === null)"
   >
     <template v-if="scheduledPost">
       <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <p class="text-xs font-semibold tracking-wide text-ink-muted uppercase">Next up</p>
-          <p
-            class="text-2xl font-semibold tracking-tight text-ink tabular-nums"
-            role="timer"
-            aria-live="off"
-            data-testid="next-up-countdown"
-          >
-            {{ countdownText }}
-          </p>
-        </div>
+        <p
+          class="text-2xl font-bold tracking-tight text-ink tabular-nums"
+          role="timer"
+          aria-live="off"
+          data-testid="next-up-countdown"
+        >
+          {{ countdownText }}
+        </p>
 
-        <div v-if="account" class="flex shrink-0 items-center gap-2">
-          <PlatformIcon :platform="account.platform" size="md" />
-          <span class="max-w-40 truncate text-sm font-semibold text-ink" data-testid="next-up-account">
+        <div v-if="account" class="flex shrink-0 items-center gap-1.5">
+          <PlatformIcon :platform="account.platform" size="sm" />
+          <span class="max-w-32 truncate text-xs font-semibold text-ink" data-testid="next-up-account">
             {{ resolvedName }}
           </span>
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
         <time :datetime="scheduledPost.scheduledAt ?? undefined" data-testid="next-up-time">
           {{ timeText }}
         </time>
@@ -122,18 +118,24 @@ const countdownText = computed(() => {
         <span v-if="account" data-testid="next-up-platform">{{ platformLabel(account.platform) }}</span>
       </div>
 
-      <p class="clamp-2 text-sm text-balance-pretty text-ink" data-testid="next-up-content">
+      <p class="clamp-2 text-xs leading-relaxed text-balance-pretty text-ink" data-testid="next-up-content">
         {{ scheduledPost.content }}
       </p>
     </template>
 
-    <div v-else data-testid="next-up-empty">
-      <BaseEmptyState
-        compact
-        :icon="CalendarClock"
-        title="Nothing scheduled next"
-        description="Schedule a post and its live countdown shows up here."
-      />
+    <div v-else class="flex items-center gap-3 py-1" data-testid="next-up-empty">
+      <span
+        class="flex size-9 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300"
+        aria-hidden="true"
+      >
+        <CalendarClock class="size-4.5" />
+      </span>
+      <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-semibold text-ink">Nothing scheduled next</h3>
+        <p class="mt-0.5 text-xs leading-relaxed text-ink-muted">
+          Schedule a post and its live countdown shows up here.
+        </p>
+      </div>
     </div>
   </BaseCard>
 </template>

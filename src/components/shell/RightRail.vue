@@ -5,7 +5,7 @@
  * every fact here also exists on a page.
  */
 import { computed } from 'vue'
-import { Activity, CalendarClock, Inbox } from 'lucide-vue-next'
+import { Activity, BarChart2, CalendarClock, Inbox } from 'lucide-vue-next'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
@@ -32,30 +32,43 @@ const recent = computed(() =>
 
 <template>
   <aside
-    class="flex w-80 shrink-0 flex-col gap-4 border-s border-line bg-surface p-4"
+    class="flex w-80 shrink-0 flex-col gap-6 border-s border-line bg-surface p-4"
     aria-label="Summary"
     data-testid="right-rail"
   >
     <section>
-      <h2 class="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
+      <h2 class="mb-2.5 flex items-center gap-2 text-xs font-semibold tracking-wider text-ink-muted uppercase">
         <CalendarClock class="size-4 text-ink-muted" aria-hidden="true" />
         Next up
       </h2>
       <NextUpCard :post="posts.nextUp" />
     </section>
 
-    <section class="grid grid-cols-2 gap-3">
-      <StatCard
-        label="Scheduled"
-        :value="counts.scheduled"
-        :icon="CalendarClock"
-        tone="brand"
-      />
-      <StatCard label="This week" :value="counts.publishedThisWeek" :icon="Inbox" tone="ok" />
+    <section>
+      <h2 class="mb-2.5 flex items-center gap-2 text-xs font-semibold tracking-wider text-ink-muted uppercase">
+        <BarChart2 class="size-4 text-ink-muted" aria-hidden="true" />
+        Overview
+      </h2>
+      <div class="grid grid-cols-2 gap-3">
+        <StatCard
+          label="Scheduled"
+          :value="counts.scheduled"
+          :icon="CalendarClock"
+          tone="brand"
+          compact
+        />
+        <StatCard
+          label="This week"
+          :value="counts.publishedThisWeek"
+          :icon="Inbox"
+          tone="ok"
+          compact
+        />
+      </div>
     </section>
 
     <section>
-      <h2 class="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
+      <h2 class="mb-2.5 flex items-center gap-2 text-xs font-semibold tracking-wider text-ink-muted uppercase">
         <Activity class="size-4 text-ink-muted" aria-hidden="true" />
         Recent activity
       </h2>

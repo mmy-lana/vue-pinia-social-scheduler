@@ -23,9 +23,12 @@ const props = withDefaults(
     tone?: Tone
     /** Short movement note, e.g. `+3 this week`. */
     delta?: string
+    /** Tighter padding and scaled icons for side rails and dense layouts. */
+    compact?: boolean
   }>(),
   {
     tone: 'neutral',
+    compact: false,
   },
 )
 
@@ -42,14 +45,14 @@ const iconClass = computed(() => cx(iconToneClasses[props.tone]))
 
 <template>
   <BaseCard
-    padding="md"
-    class="flex h-full flex-col gap-1"
+    :padding="props.compact ? 'sm' : 'md'"
+    class="flex h-full flex-col justify-between gap-1"
     data-testid="stat-card"
     :data-tone="props.tone"
   >
-    <div class="flex items-start justify-between gap-3">
+    <div class="flex items-center justify-between gap-2">
       <p
-        class="text-xs font-semibold tracking-wide text-ink-muted uppercase"
+        class="truncate text-xs font-semibold tracking-wide text-ink-muted uppercase"
         data-testid="stat-card-label"
       >
         {{ props.label }}
@@ -57,29 +60,40 @@ const iconClass = computed(() => cx(iconToneClasses[props.tone]))
 
       <span
         v-if="props.icon"
-        :class="cx('flex size-9 shrink-0 items-center justify-center rounded-full', iconClass)"
+        :class="
+          cx(
+            'flex shrink-0 items-center justify-center rounded-full',
+            props.compact ? 'size-7' : 'size-9',
+            iconClass,
+          )
+        "
         aria-hidden="true"
         data-testid="stat-card-icon"
       >
-        <component :is="props.icon" class="size-4" />
+        <component :is="props.icon" :class="props.compact ? 'size-3.5' : 'size-4'" />
       </span>
     </div>
 
-    <p class="text-3xl font-semibold tracking-tight text-ink" data-testid="stat-card-value">
-      {{ props.value }}
-    </p>
+    <div :class="props.compact ? 'mt-2.5' : ''">
+      <p
+        :class="cx('font-bold tracking-tight text-ink', props.compact ? 'text-2xl' : 'text-3xl')"
+        data-testid="stat-card-value"
+      >
+        {{ props.value }}
+      </p>
 
-    <p
-      v-if="props.delta"
-      class="flex items-center gap-1 text-sm font-medium text-ok"
-      data-testid="stat-card-delta"
-    >
-      <ArrowUpRight class="size-4" aria-hidden="true" />
-      <span>{{ props.delta }}</span>
-    </p>
+      <p
+        v-if="props.delta"
+        class="mt-0.5 flex items-center gap-1 text-xs font-medium text-ok"
+        data-testid="stat-card-delta"
+      >
+        <ArrowUpRight class="size-3.5" aria-hidden="true" />
+        <span>{{ props.delta }}</span>
+      </p>
 
-    <p v-if="props.caption" class="text-sm text-ink-muted" data-testid="stat-card-caption">
-      {{ props.caption }}
-    </p>
+      <p v-if="props.caption" class="mt-0.5 text-xs text-ink-muted" data-testid="stat-card-caption">
+        {{ props.caption }}
+      </p>
+    </div>
   </BaseCard>
 </template>
