@@ -498,6 +498,97 @@ check('drag-reschedule', async (ctx) => {
   await ctx.shot('15-drag-reschedule')
 })
 
+check('guide', async (ctx) => {
+  await ctx.page.setViewport(DESKTOP.width, DESKTOP.height)
+  await ctx.clearAndReload('/dashboard')
+
+  await ctx.click('[data-testid="top-bar-guide"]')
+  await ctx.assertVisible('[data-testid="app-guide"]', 'the guide opens from the top bar')
+
+  // Inactive sections stay mounted but are display:none, so presence is the
+  // assertion here; visibility is checked per tab below.
+  for (const panel of ['start', 'privacy', 'platforms', 'matrix']) {
+    ctx.assert(
+      await ctx.exists(`[data-testid="app-guide-panel-${panel}"]`),
+      `guide section ${panel} is present`,
+    )
+  }
+  await ctx.assertVisible(
+    '[data-testid="app-guide-panel-start"]',
+    'the first section is visible on open',
+  )
+
+  await ctx.assertText(
+    '[data-testid="app-guide-panel-privacy"]',
+    'never leaves the device',
+    'the privacy section states the local-first guarantee',
+  )
+
+  // Move through the sections and confirm each shows its own content.
+  for (const [label, needle] of [
+    ['Privacy', 'cannot be hacked'],
+    ['Platform Setup', 'OAuth 2.0'],
+    ['Support Matrix', 'Not included'],
+  ]) {
+    await ctx.clickText(label, '[role="tab"]')
+    const visible = await ctx.evaluate(`
+      const panels = Array.from(document.querySelectorAll('[data-testid^="app-guide-panel-"]'));
+      const shown = panels.filter((panel) => panel.getAttribute('style') !== 'display: none;');
+      return shown.map((panel) => panel.textContent || '').join(' ');
+    `)
+    ctx.assert(visible.includes(needle), `the ${label} section mentions "${needle}"`)
+  }
+
+  await ctx.assertText(
+    '[data-testid="app-guide-panel-matrix"]',
+    'TikTok',
+    'unsupported platforms are listed with a reason',
+  )
+
+  // Dismissal must return the user to the app, not leave a stuck overlay.
+  await ctx.click('[data-testid="base-modal-close"]')
+  await ctx.waitForGone('[data-testid="app-guide"]')
+  await ctx.assertVisible('[data-testid="top-bar"]', 'closing the guide returns to the app')
+  await ctx.shot('16-guide')
+})
+
+check('sidebar', async (ctx) => {
+  await ctx.page.setViewport(DESKTOP.width, DESKTOP.height)
+  await ctx.goto('/settings')
+  await loadDemo(ctx)
+  await ctx.goto('/dashboard')
+
+  await ctx.assertVisible('[data-testid="sidebar-brand"]', 'the sidebar shows its branding header')
+  await ctx.assertText('[data-testid="sidebar-brand"]', 'Social Scheduler', 'the app title is shown')
+  await ctx.assertText('[data-testid="sidebar-brand"]', 'Local-First', 'the local-first badge is shown')
+
+  // The reported defect: scrolling the page took the top of the sidebar with
+  // it, hiding Timeline. The column must stay pinned and fully on screen.
+  await ctx.page.evaluate(`
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    return true;
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 250))
+
+  const timeline = await ctx.page.evaluate(`
+    const link = document.querySelector('[data-testid="sidebar-nav-dashboard"]');
+    if (!link) return null;
+    const rect = link.getBoundingClientRect();
+    return { top: rect.top, bottom: rect.bottom, visible: rect.top >= 0 && rect.bottom <= window.innerHeight };
+  `)
+  ctx.assert(timeline !== null, 'the Timeline link still exists')
+  ctx.assert(timeline.visible, `Timeline stays on screen after scrolling (top ${timeline.top})`)
+
+  // Every destination must remain reachable without a hover-only affordance.
+  for (const name of ['dashboard', 'calendar', 'queue', 'library', 'channels', 'settings', 'guide']) {
+    await ctx.assertVisible(`[data-testid="sidebar-nav-${name}"]`, `the sidebar exposes ${name}`)
+  }
+
+  await ctx.click('[data-testid="sidebar-nav-guide"]')
+  await ctx.assertVisible('[data-testid="app-guide"]', 'the sidebar opens the guide too')
+  await ctx.shot('17-sidebar')
+})
+
 check('persistence', async (ctx) => {
   await ctx.page.setViewport(DESKTOP.width, DESKTOP.height)
   await ctx.goto('/settings')
@@ -534,41 +625,49 @@ async function main() {
     process.exit(2)
   }
 
-  const browser = await BrowserSession.launch({ width: DESKTOP.width, height: DESKTOP.height, port: PORT })
+  const browser = await BrowserSession.launch({
+    width: DESKTOP.width,
+    height: DESKTOP.height,
+    port: PORT,
+  })
   const results = []
   let hardFailure = false
 
-  console.log(`\n▶ ${selected.length} check(s) against ${BASE_URL}`)
+  console.log(`\n\u25b6 ${selected.length} check(s) against ${BASE_URL}`)
   console.log(`  chrome pid ${browser.process.pid}, profile ${browser.userDataDir}\n`)
 
-  for (const { name, fn } of selected) {
-    const page = await browser.newPage('about:blank', DESKTOP)
-    const ctx = makeContext(page)
-    const started = Date.now()
-    try {
-      await fn(ctx)
-      const problems = page.problems()
-      const noise = [...problems.consoleErrors, ...problems.pageErrors, ...problems.failedRequests]
-      if (noise.length > 0) {
-        throw new Error(`browser reported errors:\n    ${noise.slice(0, 5).join('\n    ')}`)
+  // The browser is torn down in a finally, so a throw inside a check cannot
+  // leave a headless instance running on the developer's machine.
+  try {
+    for (const { name, fn } of selected) {
+      const page = await browser.newPage('about:blank', DESKTOP)
+      const ctx = makeContext(page)
+      const started = Date.now()
+      try {
+        await fn(ctx)
+        const problems = page.problems()
+        const noise = [...problems.consoleErrors, ...problems.pageErrors, ...problems.failedRequests]
+        if (noise.length > 0) {
+          throw new Error(`browser reported errors:\n    ${noise.slice(0, 5).join('\n    ')}`)
+        }
+        results.push({ name, ok: true, ms: Date.now() - started })
+        console.log(`  \u2713 ${name} (${Date.now() - started}ms)`)
+      } catch (error) {
+        hardFailure = true
+        const message = error instanceof Error ? error.message : String(error)
+        results.push({ name, ok: false, ms: Date.now() - started, message })
+        console.log(`  \u2717 ${name} (${Date.now() - started}ms)\n      ${message.split('\n').join('\n      ')}`)
+        await page.screenshot(`fail-${name}`).catch(() => {})
+      } finally {
+        page.clearProblems()
+        // Without this the next check runs alongside this page's scheduler and
+        // persistence timers, both of which keep writing to the same origin.
+        await page.close()
       }
-      results.push({ name, ok: true, ms: Date.now() - started })
-      console.log(`  ✓ ${name} (${Date.now() - started}ms)`)
-    } catch (error) {
-      hardFailure = true
-      const message = error instanceof Error ? error.message : String(error)
-      results.push({ name, ok: false, ms: Date.now() - started, message })
-      console.log(`  ✗ ${name} (${Date.now() - started}ms)\n      ${message.split('\n').join('\n      ')}`)
-      await page.screenshot(`fail-${name}`).catch(() => {})
-    } finally {
-      page.clearProblems()
-      // Without this, the next check runs alongside this page's scheduler and
-      // persistence timers, both of which keep writing to the same origin.
-      await page.close()
     }
+  } finally {
+    await browser.close()
   }
-
-  await browser.close()
 
   const passed = results.filter((result) => result.ok).length
   console.log(`\n${passed}/${results.length} checks passed`)

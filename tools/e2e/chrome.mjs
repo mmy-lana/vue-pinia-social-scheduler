@@ -7,7 +7,7 @@
  * killed — any browser the user already has open is left alone.
  */
 import { spawn } from 'node:child_process'
-import { mkdtemp, writeFile, mkdir } from 'node:fs/promises'
+import { mkdtemp, writeFile, mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -20,6 +20,26 @@ const CHROME_CANDIDATES = [
 ]
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * Terminates the browser and every helper it forked.
+ *
+ * The process was spawned detached, so it leads its own process group and the
+ * negative pid reaches the whole tree. Only this run's own group is signalled:
+ * a browser the developer has open is never in it.
+ */
+function killTree(child) {
+  if (child.pid === undefined) return
+  try {
+    process.kill(-child.pid, 'SIGKILL')
+  } catch {
+    try {
+      child.kill('SIGKILL')
+    } catch {
+      // already gone
+    }
+  }
+}
 
 export async function resolveChromeBinary() {
   const { access } = await import('node:fs/promises')
@@ -123,7 +143,10 @@ export class BrowserSession {
         '--no-sandbox',
         'about:blank',
       ],
-      { stdio: 'ignore', detached: false },
+      // Its own process group, so the whole browser tree — not just the parent
+      // pid — can be reaped. Chrome forks several helper processes, and leaving
+      // them behind accumulates headless browsers on the host.
+      { stdio: 'ignore', detached: true },
     )
 
     const deadline = Date.now() + 20_000
@@ -141,7 +164,8 @@ export class BrowserSession {
       await sleep(120)
     }
     if (!version) {
-      child.kill('SIGKILL')
+      killTree(child)
+      await rm(userDataDir, { recursive: true, force: true })
       throw new Error('Chrome did not expose a debugging port in time')
     }
 
@@ -207,9 +231,12 @@ export class BrowserSession {
     }
     this.connection.close()
     const exited = new Promise((resolve) => this.process.once('exit', resolve))
-    const timer = setTimeout(() => this.process.kill('SIGKILL'), 3_000)
+    const timer = setTimeout(() => killTree(this.process), 3_000)
     await exited
     clearTimeout(timer)
+    // Helpers outlive the parent unless the whole group is signalled.
+    killTree(this.process)
+    await rm(this.userDataDir, { recursive: true, force: true })
   }
 }
 
