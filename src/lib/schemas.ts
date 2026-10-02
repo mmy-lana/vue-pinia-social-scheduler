@@ -123,8 +123,8 @@ export const MediaAssetSchema = z.object({
   ...baseShape,
   name: z.string().min(1),
   mime: z.enum(ALLOWED_MEDIA_MIMES),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
+  width: z.number().int().nonnegative(),
+  height: z.number().int().nonnegative(),
   bytes: z.number().int().nonnegative(),
   dataUrl: z.string().regex(IMAGE_DATA_URL, 'Unsupported media data URL'),
 })

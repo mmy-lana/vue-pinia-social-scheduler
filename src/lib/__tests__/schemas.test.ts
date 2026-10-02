@@ -29,6 +29,16 @@ describe('record validation', () => {
     expect(AppSettingsSchema.safeParse(makeSettings()).success).toBe(true)
   })
 
+  it('accepts zero dimensions for gif assets', () => {
+    const gif = makeMedia({
+      mime: 'image/gif',
+      width: 0,
+      height: 0,
+      dataUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    })
+    expect(MediaAssetSchema.safeParse(gif).success).toBe(true)
+  })
+
   it('rejects unknown platforms, handles and statuses', () => {
     expect(SocialAccountSchema.safeParse(makeAccount({ platform: 'myspace' as never })).success).toBe(false)
     expect(SocialAccountSchema.safeParse(makeAccount({ handle: 'a' })).success).toBe(false)

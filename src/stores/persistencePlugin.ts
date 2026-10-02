@@ -178,7 +178,11 @@ export function persistencePlugin({ store }: PiniaPluginContext): void {
     const parsed = api.parse(fresh)
     applyingExternal = true
     api.apply(parsed.data)
-    lastWritten = JSON.stringify(api.read())
+    try {
+      lastWritten = JSON.stringify(api.read())
+    } catch {
+      lastWritten = null
+    }
     if (parsed.dropped > 0) api.onDropped?.(parsed.dropped)
     // Release the guard on the next macrotask, after the store's own watchers
     // (including this subscription) have flushed.
